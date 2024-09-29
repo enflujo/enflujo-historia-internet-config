@@ -10,6 +10,6 @@ https://github.com/enflujo/enflujo-historia-internet-config
 
 ## Colecciones
 
-- Línea de tiempo
-- Personajes
-- Glosario
+- [X] Línea de tiempo
+- [ ] Personajes
+- [ ] Glosario
