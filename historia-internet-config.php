@@ -12,6 +12,8 @@ Version: 1.0.0
 Author URI: https://enflujo.com
 */
 
+require_once 'colecciones.php';
+
 function historia_configurar_tema()
 {
   add_theme_support('post-thumbnails');
@@ -19,24 +21,8 @@ function historia_configurar_tema()
 
 function historia_registrar_colecciones()
 {
-
-  register_post_type(
-    'linea_tiempo',
-    array(
-      'labels' => array(
-        'name' => __('Línea de tiempo', 'enflujo'),
-        'singular_name' => __('Evento', 'enflujo'),
-        'add_new' => __(text: 'Añadir evento', domain: 'enflujo'),
-        'edit_item' => __(text: 'Editar evento', domain: 'enflujo')
-      ),
-      'public' => true,
-      'has_archive' => true,
-      'menu_position' => 4,
-      'menu_icon' => 'dashicons-chart-line',
-      'supports' => array('title', 'editor', 'thumbnail'),
-      'rewrite' => array('slug' => 'eventos')
-    )
-  );
+  register_post_type('linea_tiempo', historia_coleccion_linea());
+  register_post_type('personajes', historia_coleccion_personajes());
 }
 
 add_action('after_setup_theme', 'historia_configurar_tema');
