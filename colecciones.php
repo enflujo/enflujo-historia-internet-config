@@ -12,7 +12,7 @@ function historia_coleccion_linea()
       'edit_item' => __(text: 'Editar evento', domain: 'enflujo')
     ),
     'public' => true,
-    'has_archive' => true,
+    'has_archive' => false,
     'menu_position' => 4,
     'menu_icon' => 'dashicons-chart-line',
     'supports' => array('title', 'editor', 'thumbnail'),
@@ -34,7 +34,7 @@ function historia_coleccion_personajes()
       'edit_item' => __(text: 'Editar personaje', domain: 'enflujo')
     ),
     'public' => true,
-    'has_archive' => true,
+    'has_archive' => false,
     'menu_position' => 4,
     'menu_icon' => 'dashicons-groups',
     'supports' => array('title', 'editor', 'thumbnail'),
