@@ -8,7 +8,7 @@ Plugin Name: Historia del Internet Configuración
 Plugin URI: https://github.com/enflujo/enflujo-historia-internet-config
 Description: Esta extensión configura los modelos y configuración en WordPress para el proyecto Historia del Internet.
 Author: Laboratorio EnFlujo
-Version: 1.0.0
+Version: 1.0.01
 Author URI: https://enflujo.com
 */
 
