@@ -1,7 +1,7 @@
 <?php
 /**
  * @package Historia del Internet Configuración
- * @version 1.0.1
+ * @version 1.0.11
  */
 /*
 Plugin Name: Historia del Internet Configuración
@@ -10,7 +10,7 @@ GitHub Plugin URI: https://github.com/enflujo/enflujo-historia-internet-config
 Primary Branch: main
 Description: Esta extensión configura los modelos y configuración en WordPress para el proyecto Historia del Internet.
 Author: Laboratorio EnFlujo
-Version: 1.0.1
+Version: 1.0.11
 Author URI: https://enflujo.com
 */
 

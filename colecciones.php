@@ -39,6 +39,7 @@ function historia_coleccion_personajes()
     'menu_icon' => 'dashicons-groups',
     'supports' => array('title', 'editor', 'thumbnail'),
     'rewrite' => array('slug' => 'personajes'),
+    'show_in_graphql' => true,
     'graphql_single_name' => 'personaje',
     'graphql_plural_name' => 'personajes',
     'publicly_queryable' => true
@@ -60,6 +61,7 @@ function historia_coleccion_glosario()
     'menu_icon' => 'dashicons-book',
     'supports' => array('title', 'editor', 'thumbnail'),
     'rewrite' => array('slug' => 'glosario'),
+    'show_in_graphql' => true,
     'graphql_single_name' => 'termino',
     'graphql_plural_name' => 'glosario',
     'publicly_queryable' => true
