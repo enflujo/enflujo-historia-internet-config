@@ -70,3 +70,27 @@ function historia_coleccion_glosario()
     'publicly_queryable' => true
   );
 }
+
+function historia_coleccion_transcripciones()
+{
+  return array(
+    'labels' => array(
+      'name' => __('Transcripciones', 'enflujo'),
+      'singular_name' => __('Transcripión', 'enflujo'),
+      'add_new' => __(text: 'Añadir transcripción', domain: 'enflujo'),
+      'edit_item' => __(text: 'Editar transcripción', domain: 'enflujo'),
+      'add_new_item' => __(text: 'Añadir transcripción', domain: 'enflujo'),
+    ),
+    'public' => true,
+    'has_archive' => false,
+    'menu_position' => 4,
+    'menu_icon' => 'dashicons-media-text',
+    'supports' => array('title', 'thumbnail'),
+    'rewrite' => array('slug' => 'transcripciones'),
+    'taxonomies' => array('category', 'post_tag'),
+    'show_in_graphql' => true,
+    'graphql_single_name' => 'transcripcion',
+    'graphql_plural_name' => 'transcripciones',
+    'publicly_queryable' => true
+  );
+}

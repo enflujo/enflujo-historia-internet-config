@@ -64,10 +64,9 @@ function crearCamposSEO($nombrePod)
   pods_register_group($grupo, $nombrePod, $campos);
 }
 
-
-function registrarModeloLineaTiempo()
+function modeloLinea()
 {
-  $campos = array(
+  return array(
     'fecha' => array(
       'name' => 'fecha',
       'label' => 'Fecha',
@@ -95,32 +94,41 @@ tecnologico | Acontecimiento tecnológico',
       // 'wpgraphql_plural_name' => 'tipos',
     ),
   );
+}
 
-  $lineaTiempo = crearPod('linea_tiempo', 'Línea de tiempo', 'evento', 'eventos');
+function crearPods()
+{
   $grupoMeta = crearGrupo('metadatos', 'Metadatos');
 
-  pods_register_type($lineaTiempo['post_type'], $lineaTiempo['name'], $lineaTiempo);
-  pods_register_group($grupoMeta, $lineaTiempo['name'], $campos);
+  pods_register_group($grupoMeta, 'linea_tiempo', modeloLinea());
+  pods_register_group($grupoMeta, 'transcripciones', modeloTranscripciones());
+  crearCamposSEO('transcripciones');
+  crearCamposSEO('personajes');
+  crearCamposSEO('glosario');
 }
 
-function registrarModeloPersonajes()
+function modeloTranscripciones()
 {
-  $personajes = crearPod('personajes', 'Personajes', 'personaje', 'personajes');
-  // $grupoMeta = crearGrupo('metadatos', 'Metadatos');
+  return array(
+    'fecha' => array(
+      'name' => 'fecha',
+      'label' => 'Fecha',
+      'description' => 'Fecha de la entrevista (MM/DD/AAAA)',
+      'type' => 'date',
+      'date_type' => 'format',
+      'required' => '1',
+      // 'wpgraphql_singular_name' => 'fecha',
+      // 'wpgraphql_plural_name' => 'fechas',
+    ),
+    'sinopsis' => array(
+      'name' => 'sinopsis',
+      'label' => 'Sinopsis',
+      'description' => 'Descripción corta de la entrevista',
+      'type' => 'paragraph',
+    ),
+  );
 
 
-  pods_register_type($personajes['post_type'], $personajes['name'], $personajes);
-  crearCamposSEO($personajes['name']);
-}
-
-function registrarModeloGlosario()
-{
-  $glosario = crearPod('glosario', 'Glosario', 'termmino', 'terminos');
-  // $grupoMeta = crearGrupo('metadatos', 'Metadatos');
-
-
-  pods_register_type($glosario['post_type'], $glosario['name'], $glosario);
-  crearCamposSEO($glosario['name']);
 }
 
 function registrarModeloPaginas()
@@ -143,8 +151,6 @@ function registrarModeloPaginas()
     ),
   );
 
-  $paginas = crearPod('page', 'Pages', 'page', 'pages');
   $grupoMeta = crearGrupo('metadatos', 'Metadatos');
-  pods_register_type($paginas['post_type'], $paginas['name'], $paginas);
-  pods_register_group($grupoMeta, $paginas['name'], $campos);
+  pods_register_group($grupoMeta, 'page', $campos);
 }
