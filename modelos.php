@@ -36,9 +36,9 @@ function crearPod($llave, $nombre, $llaveSingular, $llavePlural)
   );
 }
 
-function crearCamposSEO($nombrePod)
+function crearCamposSEO()
 {
-  $campos = array(
+  return array(
     'descripcion' => array(
       'name' => 'descripcion',
       'label' => 'Descripción',
@@ -60,8 +60,8 @@ function crearCamposSEO($nombrePod)
     ),
   );
 
-  $grupo = crearGrupo('seo', 'SEO');
-  pods_register_group($grupo, $nombrePod, $campos);
+
+
 }
 
 function modeloLinea()
@@ -99,12 +99,14 @@ tecnologico | Acontecimiento tecnológico',
 function crearPods()
 {
   $grupoMeta = crearGrupo('metadatos', 'Metadatos');
+  $grupoSEO = crearGrupo('seo', 'SEO');
+  $camposSEO = crearCamposSEO();
 
   pods_register_group($grupoMeta, 'linea_tiempo', modeloLinea());
   pods_register_group($grupoMeta, 'transcripciones', modeloTranscripciones());
-  crearCamposSEO('transcripciones');
-  crearCamposSEO('personajes');
-  crearCamposSEO('glosario');
+  pods_register_group($grupoSEO, 'transcripciones', $camposSEO);
+  pods_register_group($grupoSEO, 'personajes', $camposSEO);
+  pods_register_group($grupoSEO, 'glosario', $camposSEO);
 }
 
 function modeloTranscripciones()

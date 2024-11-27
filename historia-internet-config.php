@@ -1,7 +1,7 @@
 <?php
 /**
  * @package Historia del Internet Configuración
- * @version 1.0.5
+ * @version 1.0.6
  */
 /*
 Plugin Name: Historia del Internet Configuración
@@ -10,7 +10,7 @@ GitHub Plugin URI: https://github.com/enflujo/enflujo-historia-internet-config
 Primary Branch: main
 Description: Esta extensión configura los modelos y configuración en WordPress para el proyecto Historia del Internet.
 Author: Laboratorio EnFlujo
-Version: 1.0.5
+Version: 1.0.6
 Author URI: https://enflujo.com
 */
 
@@ -28,10 +28,10 @@ function historia_registrar_colecciones()
   register_post_type('glosario', historia_coleccion_glosario());
   register_post_type('transcripciones', historia_coleccion_transcripciones());
 
-  if (is_plugin_active('pods/init.php')) {
-    crearPods();
-    registrarModeloPaginas();
-  }
+  // if (is_plugin_active('pods/init.php')) {
+  //   crearPods();
+  //   registrarModeloPaginas();
+  // }
 }
 
 add_action('after_setup_theme', 'historia_configurar_tema');
