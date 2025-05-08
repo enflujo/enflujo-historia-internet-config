@@ -10,7 +10,7 @@ GitHub Plugin URI: https://github.com/enflujo/enflujo-historia-internet-config
 Primary Branch: main
 Description: Esta extensión configura los modelos y configuración en WordPress para el proyecto Historia del Internet.
 Author: Laboratorio EnFlujo
-Version: 1.0.8
+Version: 1.0.9
 Author URI: https://enflujo.com
 */
 
@@ -43,6 +43,23 @@ add_action('graphql_register_types', function () {
     'resolve' => function ($post) {
       global $wpdb;
       $field_id = 412; // Reemplaza este ID si cambia
+      $results = $wpdb->get_col(
+        $wpdb->prepare(
+          "SELECT related_item_id FROM wp_podsrel WHERE field_id = %d AND item_id = %d ORDER BY weight",
+          $field_id,
+          $post->ID
+        )
+      );
+      return array_map('intval', $results);
+    }
+  ]);
+
+  register_graphql_field('Transcripcion', 'ordenAudios', [
+    'type' => ['list_of' => 'Int'],
+    'description' => 'Orden de audios',
+    'resolve' => function ($post) {
+      global $wpdb;
+      $field_id = 413; // Reemplaza este ID si cambia
       $results = $wpdb->get_col(
         $wpdb->prepare(
           "SELECT related_item_id FROM wp_podsrel WHERE field_id = %d AND item_id = %d ORDER BY weight",
