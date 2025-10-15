@@ -10,7 +10,7 @@ GitHub Plugin URI: https://github.com/enflujo/enflujo-historia-internet-config
 Primary Branch: main
 Description: Esta extensión configura los modelos y configuración en WordPress para el proyecto Historia del Internet.
 Author: Laboratorio EnFlujo
-Version: 1.0.10
+Version: 1.0.11
 Author URI: https://enflujo.com
 */
 
@@ -142,6 +142,7 @@ function enflujo_historia_render_publicar_page()
     $workflow = isset($_POST['enflujo_gh_workflow']) ? sanitize_text_field($_POST['enflujo_gh_workflow']) : '';
     $ref = isset($_POST['enflujo_gh_ref']) ? sanitize_text_field($_POST['enflujo_gh_ref']) : '';
     $token = isset($_POST['enflujo_gh_token']) ? sanitize_text_field($_POST['enflujo_gh_token']) : '';
+    $url_publica = isset($_POST['enflujo_public_url']) ? esc_url_raw($_POST['enflujo_public_url']) : '';
 
     if ($owner)
       update_option('enflujo_gh_owner', $owner);
@@ -153,6 +154,8 @@ function enflujo_historia_render_publicar_page()
       update_option('enflujo_gh_ref', $ref);
     if ($token)
       update_option('enflujo_gh_token', $token);
+    if ($url_publica !== '')
+      update_option('enflujo_public_url', $url_publica);
 
     echo '<div class="notice notice-success is-dismissible"><p>Configuración guardada.</p></div>';
   }
@@ -167,6 +170,7 @@ function enflujo_historia_render_publicar_page()
   $workflow_val = get_option('enflujo_gh_workflow', defined('ENFLUJO_GH_WORKFLOW') ? ENFLUJO_GH_WORKFLOW : 'despliegue.yml');
   $ref_val = get_option('enflujo_gh_ref', defined('ENFLUJO_GH_REF') ? ENFLUJO_GH_REF : 'main');
   $token_present = enflujo_historia_obtener_token_github() ? true : false;
+  $url_publica_val = get_option('enflujo_public_url', '');
   $base_url = admin_url('admin.php?page=enflujo-publicar');
   $url_publicar = esc_url(add_query_arg('tab', 'publicar', $base_url));
   $url_config = esc_url(add_query_arg('tab', 'configuracion', $base_url));
@@ -216,6 +220,14 @@ function enflujo_historia_render_publicar_page()
             <p class="description">Se guarda en opciones de WordPress y sólo es visible para administradores.</p>
           </td>
         </tr>
+        <tr>
+          <th scope="row"><label for="enflujo_public_url">URL del sitio público (Astro)</label></th>
+          <td>
+            <input name="enflujo_public_url" id="enflujo_public_url" type="url" class="regular-text"
+              placeholder="https://tu-dominio.com" value="<?php echo esc_attr($url_publica_val); ?>" />
+            <p class="description">Si se define, el enlace "Visitar sitio" del admin redirige a esta URL.</p>
+          </td>
+        </tr>
       </table>
         <p>
           <button type="submit" name="enflujo_settings_submit" class="button button-secondary">Guardar cambios</button>
@@ -240,6 +252,14 @@ function enflujo_historia_render_publicar_page()
         </button>
         <span id="enflujo-publicar-estado" style="margin-left: 10px;"></span>
       </p>
+
+      <?php if (!empty($url_publica_val)): ?>
+        <p>
+          <a href="<?php echo esc_url($url_publica_val); ?>" target="_blank" rel="noopener noreferrer" class="button button-secondary">
+            Abrir sitio público
+          </a>
+        </p>
+      <?php endif; ?>
 
       <div id="enflujo-progreso" style="display:none; max-width:480px;">
         <div style="background:#f1f1f1; border:1px solid #ccc; height:16px; position:relative;">
@@ -534,4 +554,31 @@ add_action('wp_ajax_enflujo_publicar_estado', function () {
 
   wp_send_json_success($payload);
 });
+
+/**
+ * ==============================
+ *  Admin Bar: Enlace "Visitar sitio" personalizado
+ * ==============================
+ */
+add_action('admin_bar_menu', function($wp_admin_bar){
+  // Sólo en el admin bar y para usuarios con acceso
+  if (!is_admin_bar_showing()) return;
+
+  $url_publica = get_option('enflujo_public_url', '');
+  if (!$url_publica) return; // si no está configurada, no hacer nada
+
+  // Nodo principal del sitio
+  $nodo = $wp_admin_bar->get_node('site-name');
+  if ($nodo) {
+    $nodo->href = $url_publica;
+    $wp_admin_bar->add_node($nodo);
+  }
+
+  // Enlace “Visitar sitio” que suele ser hijo
+  $ver = $wp_admin_bar->get_node('view-site');
+  if ($ver) {
+    $ver->href = $url_publica;
+    $wp_admin_bar->add_node($ver);
+  }
+}, 100);
 
