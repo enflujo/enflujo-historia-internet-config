@@ -268,6 +268,8 @@ function enflujo_historia_render_publicar_page()
         <small id="enflujo-progreso-texto">Iniciando despliegue…</small>
       </div>
 
+      <div id="enflujo-detalle" style="margin-top:12px;"></div>
+
       <hr />
       <p>
         <strong>Último despliegue:</strong>
@@ -279,25 +281,25 @@ function enflujo_historia_render_publicar_page()
 
     <script type="text/javascript">
       (function () {
-  // Variables de interfaz
-  const urlAjax = '<?php echo admin_url('admin-ajax.php'); ?>';
-  const noncePublicar = '<?php echo esc_js($nonce); ?>';
-  const entradaToken = document.getElementById('enflujo_gh_token');
-  const alternarToken = document.getElementById('enflujo_gh_token_toggle');
-  const boton = document.getElementById('enflujo-publicar-boton');
-  const estadoEl = document.getElementById('enflujo-publicar-estado');
-  const progreso = document.getElementById('enflujo-progreso');
-  const barra = document.getElementById('enflujo-progreso-barra');
-  const textoProgreso = document.getElementById('enflujo-progreso-texto');
-  const ultimoEl = document.getElementById('enflujo-ultimo-despliegue');
+        const urlAjax = '<?php echo admin_url('admin-ajax.php'); ?>';
+        const noncePublicar = '<?php echo esc_js($nonce); ?>';
+        const entradaToken = document.getElementById('enflujo_gh_token');
+        const alternarToken = document.getElementById('enflujo_gh_token_toggle');
+        const boton = document.getElementById('enflujo-publicar-boton');
+        const estadoEl = document.getElementById('enflujo-publicar-estado');
+        const progreso = document.getElementById('enflujo-progreso');
+        const barra = document.getElementById('enflujo-progreso-barra');
+        const textoProgreso = document.getElementById('enflujo-progreso-texto');
+        const ultimoEl = document.getElementById('enflujo-ultimo-despliegue');
 
         let temporizadorConsulta = null;
+
         if (alternarToken && entradaToken) {
           alternarToken.addEventListener('change', function () {
             entradaToken.type = this.checked ? 'text' : 'password';
           });
         }
-        // Establece el progreso visual
+
         function establecerProgreso(porcentaje, texto) {
           if (!progreso || !barra || !textoProgreso) return;
           progreso.style.display = 'block';
@@ -305,12 +307,96 @@ function enflujo_historia_render_publicar_page()
           if (texto) textoProgreso.textContent = texto;
         }
 
-        // Formatea una fecha ISO para mostrar
+        function limpiarProgreso() {
+          if (progreso) progreso.style.display = 'none';
+          if (estadoEl) estadoEl.textContent = '';
+          if (boton) { boton.disabled = false; boton.title = 'Publicar sitio'; }
+        }
+
         function formatearHora(iso) {
           try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
         }
 
-        // Consulta el estado del último flujo en GitHub Actions
+        function badge(txt, kind) {
+          const colors = {
+            queued:    '#777',
+            in_progress: '#2271b1',
+            completed:  '#00a32a',
+            success:    '#00a32a',
+            failure:    '#d63638',
+            cancelled:  '#646970'
+          };
+          const bg = colors[kind] || '#777';
+          return '<span style="display:inline-block;padding:1px 6px;border-radius:999px;background:'+bg+';color:#fff;font-size:11px;line-height:18px;">'+txt+'</span>';
+        }
+
+        function renderDetalle(payload) {
+          const cont = document.getElementById('enflujo-detalle');
+          if (!cont) return;
+          if (!payload || !payload.jobs) {
+            cont.innerHTML = '<small>Cargando detalle…</small>';
+            return;
+          }
+          if (!payload.jobs.length) {
+            cont.innerHTML = '<small>Preparando jobs…</small>';
+            return;
+          }
+          if (!payload || !payload.jobs || !payload.jobs.length) {
+            cont.innerHTML = '<small>No hay detalle disponible todavía…</small>';
+            return;
+          }
+          const p = (payload.percent_steps!=null) ? ` · ${payload.percent_steps}%` : '';
+          let html = `<strong>Progreso detallado</strong><small>${p}</small><div style="margin-top:6px">`;
+          payload.jobs.forEach(j => {
+            const safeUrl = j.html_url ? String(j.html_url).replace(/"/g, '&quot;') : '';
+            html += `<div style="margin-bottom:6px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;">
+              <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">
+                <div><strong>${j.name || 'Job'}</strong></div>
+                <div>
+                  ${j.status ? badge(j.status, j.status) : ''}
+                  ${j.conclusion ? ' ' + badge(j.conclusion, j.conclusion) : ''}
+                  ${safeUrl ? ` <a href="${safeUrl}" target="_blank" rel="noopener">ver</a>` : ''}
+                </div>
+              </div>`;
+            if (j.steps && j.steps.length) {
+              html += `<ol style="margin:6px 0 0 18px;">`;
+              j.steps.forEach(st => {
+                const lab = st.conclusion ? st.conclusion : st.status;
+                html += `<li style="margin:2px 0;">
+                  <span>${st.name}</span> ${lab ? badge(lab, lab) : ''}
+                </li>`;
+              });
+              html += `</ol>`;
+            }
+            html += `</div>`;
+          });
+          html += `</div>`;
+          cont.innerHTML = html;
+        }
+
+        function consultarDetalle(runId) {
+          if (!runId) return;
+          fetch(urlAjax, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ action: 'enflujo_publicar_detalle', _wpnonce: noncePublicar, run_id: String(runId) })
+          }).then(r => r.json()).then(data => {
+            if (!data || !data.success) return;
+            const payload = data.data;
+            renderDetalle(payload);
+
+            // Actualiza la barra con el % real por steps (si existe)
+            const percent = payload?.percent_steps;
+            if (typeof percent === 'number') {
+              // Mantén 10–99 para no “parecer completado” hasta que termine de verdad
+              establecerProgreso(Math.max(10, Math.min(99, percent)), 'Compilando…');
+            }
+          }).catch(() => {});
+        }
+
+
+
+        // ⬇️ ⬇️ Parche principal: no animar/comunicar "completado" en carga inicial
         function consultarEstado() {
           fetch(urlAjax, {
             method: 'POST',
@@ -318,52 +404,66 @@ function enflujo_historia_render_publicar_page()
             body: new URLSearchParams({ action: 'enflujo_publicar_estado', _wpnonce: noncePublicar })
           }).then(r => r.json()).then(data => {
             if (!data || !data.success) {
-              if (estadoEl) estadoEl.textContent = (data && data.message) ? data.message : 'Error consultando estado';
+              const msg = (data && data.data && data.data.message) ? data.data.message : 'Error consultando estado';
+              if (estadoEl) estadoEl.textContent = msg;
               return;
             }
-            const s = data.data;
-            // s: {status, conclusion, html_url, created_at, updated_at}
-            if (s.status === 'queued') { 
-              establecerProgreso(15, 'En cola…'); 
+            const s = data.data; // {status, conclusion, html_url, created_at, updated_at}
+
+            if (s.status === 'queued' || s.status === 'in_progress') {
+              consultarDetalle(s.id);
+            }
+
+            if (s.run_number && estadoEl && (s.status === 'queued' || s.status === 'in_progress')) {
+              estadoEl.innerHTML = `Ejecutando run #${s.run_number}… <a href="${s.html_url}" target="_blank" rel="noopener">ver en GitHub</a>`;
+            }
+
+            if (s.status === 'queued') {
+              establecerProgreso(12, 'En cola…');
               if (boton) { boton.disabled = true; boton.title = 'Ya hay un despliegue en cola. Espera a que termine.'; }
             }
-            else if (s.status === 'in_progress') { 
-              establecerProgreso(60, 'Compilando…'); 
+            else if (s.status === 'in_progress') {
               if (boton) { boton.disabled = true; boton.title = 'Ya hay un despliegue en progreso. Espera a que termine.'; }
             }
             else if (s.status === 'completed') {
-              establecerProgreso(100, s.conclusion === 'success' ? 'Completado' : 'Falló');
-              if (estadoEl) estadoEl.innerHTML = s.conclusion === 'success' ?
-                'Despliegue completado ✓' : 'Despliegue falló ✗';
-              if (s.updated_at && ultimoEl) { ultimoEl.textContent = formatearHora(s.updated_at); }
-              if (boton) { boton.disabled = false; boton.title = 'Publicar sitio'; }
-              if (temporizadorConsulta) { clearInterval(temporizadorConsulta); temporizadorConsulta = null; }
+              if (temporizadorConsulta) {
+                // Solo mostramos “completado” si veníamos haciendo polling por un despliegue iniciado desde aquí
+                establecerProgreso(100, s.conclusion === 'success' ? 'Completado' : 'Falló');
+                if (estadoEl) estadoEl.innerHTML = s.conclusion === 'success' ? 'Despliegue completado ✓' : 'Despliegue falló ✗';
+                if (s.updated_at && ultimoEl) { ultimoEl.textContent = formatearHora(s.updated_at); }
+                if (boton) { boton.disabled = false; boton.title = 'Publicar sitio'; }
+                clearInterval(temporizadorConsulta); temporizadorConsulta = null;
+              } else {
+                if (s.updated_at && ultimoEl) { ultimoEl.textContent = formatearHora(s.updated_at); }
+                limpiarProgreso();
+                const cont = document.getElementById('enflujo-detalle');
+                if (cont) cont.innerHTML = '';
+              }
+            } else if (s.status === 'unknown') {
+              limpiarProgreso();
+              if (estadoEl) estadoEl.textContent = '';
             }
           }).catch(() => {
             if (estadoEl) estadoEl.textContent = 'Error de red al consultar estado';
           });
         }
 
-        // Dispara el flujo de publicación
         function iniciarDespliegue() {
           if (estadoEl) estadoEl.textContent = 'Enviando solicitud…';
+          const cont = document.getElementById('enflujo-detalle');
+          if (cont) cont.innerHTML = '';
           establecerProgreso(10, 'Iniciando…');
           if (boton) boton.disabled = true;
+
           fetch(urlAjax, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ action: 'enflujo_publicar_disparar', _wpnonce: noncePublicar })
           }).then(r => r.json()).then(data => {
             if (!data || !data.success) {
-              // Mensaje de error
-              const msg = (data && data.message) ? data.message : 'No se pudo iniciar el despliegue';
+              const msg = (data && data.data && data.data.message) ? data.data.message : 'No se pudo iniciar el despliegue';
               if (estadoEl) estadoEl.textContent = msg;
-              // Si el servidor negó por despliegue existente, mantener deshabilitado y explicar
-              if (data && data.data && data.data.html_url) {
-                if (boton) { boton.disabled = true; boton.title = 'Hay un despliegue activo. Ver estado en GitHub.'; }
-              } else {
-                if (boton) { boton.disabled = false; boton.title = 'Publicar sitio'; }
-              }
+              if (!(data && data.data && data.data.html_url) && boton) { boton.disabled = false; boton.title = 'Publicar sitio'; }
               return;
             }
             if (estadoEl) estadoEl.innerHTML = 'Despliegue iniciado. <a target="_blank" href="' + data.data.html_url + '">Ver en GitHub</a>';
@@ -377,13 +477,22 @@ function enflujo_historia_render_publicar_page()
           });
         }
 
-        // Sólo si estamos en la pestaña Publicar (existe el botón) añadimos eventos y polling
+        // Sólo en la pestaña Publicar añadimos eventos y 1 consulta inicial (sin animar si ya estaba completado)
         if (boton) {
           boton.addEventListener('click', iniciarDespliegue);
           setTimeout(() => { consultarEstado(); }, 500);
         }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden && temporizadorConsulta) {
+            clearInterval(temporizadorConsulta); temporizadorConsulta = null;
+          } else if (!document.hidden && !temporizadorConsulta && boton) {
+            temporizadorConsulta = setInterval(consultarEstado, 5000);
+            consultarEstado();
+          }
+        });
       })();
-    </script>
+      </script>
   </div>
   <?php
 }
@@ -409,10 +518,11 @@ add_action('wp_ajax_enflujo_publicar_disparar', function () {
   // 1) Verificar si ya hay una ejecución en curso (in_progress o queued) para evitar builds simultáneos
   $check_headers = [
     'headers' => [
-      'Authorization' => 'Bearer ' . $token,
-      'Accept' => 'application/vnd.github+json',
+      'Authorization'        => 'Bearer ' . $token,
+      'Accept'               => 'application/vnd.github+json',
+      'Content-Type'         => 'application/json',
       'X-GitHub-Api-Version' => '2022-11-28',
-      'User-Agent' => 'WordPress/enflujo-historia-internet'
+      'User-Agent'           => 'WordPress/enflujo-historia-internet'
     ],
     'timeout' => 30
   ];
@@ -455,12 +565,19 @@ add_action('wp_ajax_enflujo_publicar_disparar', function () {
     'headers' => [
       'Authorization' => 'Bearer ' . $token,
       'Accept' => 'application/vnd.github+json',
+      'Content-Type'         => 'application/json',
       'X-GitHub-Api-Version' => '2022-11-28',
       'User-Agent' => 'WordPress/enflujo-historia-internet'
     ],
     'body' => wp_json_encode($body),
     'timeout' => 30
   ]);
+
+  if ( is_wp_error($res) ) {
+    error_log('[Publicar] POST dispatch WP_Error: ' . $res->get_error_message());
+  } else {
+    error_log('[Publicar] POST dispatch code=' . wp_remote_retrieve_response_code($res) . ' body=' . wp_remote_retrieve_body($res));
+  }
 
   if (is_wp_error($res)) {
     wp_send_json_error(['message' => $res->get_error_message()], 500);
@@ -469,20 +586,27 @@ add_action('wp_ajax_enflujo_publicar_disparar', function () {
   $code = wp_remote_retrieve_response_code($res);
   if ($code !== 204) {
     $msg = wp_remote_retrieve_body($res);
-    wp_send_json_error(['message' => 'GitHub respondió ' . $code . ': ' . $msg], 500);
+    wp_send_json_error([
+      'message' => 'GitHub respondió ' . $code . ': ' . $msg,
+      'status'  => $code
+    ], $code);
   }
+
+  $common_headers = [
+    'Authorization'        => 'Bearer ' . $token,
+    'Accept'               => 'application/vnd.github+json',
+    'Content-Type'         => 'application/json',
+    'X-GitHub-Api-Version' => '2022-11-28',
+    'User-Agent'           => 'WP-Enflujo-Historia-Internet/1.0'
+  ];
 
   // Obtener último run para devolver un enlace útil
   $runs_url = "https://api.github.com/repos/{$owner}/{$repo}/actions/workflows/{$workflow}/runs?per_page=1&branch=" . rawurlencode($ref);
   $runs = wp_remote_get($runs_url, [
-    'headers' => [
-      'Authorization' => 'Bearer ' . $token,
-      'Accept' => 'application/vnd.github+json',
-      'X-GitHub-Api-Version' => '2022-11-28',
-      'User-Agent' => 'WordPress/enflujo-historia-internet'
-    ],
+    'headers' => $common_headers,
     'timeout' => 30
   ]);
+
   $html_url = '';
   if (!is_wp_error($runs)) {
     $data = json_decode(wp_remote_retrieve_body($runs), true);
@@ -540,6 +664,8 @@ add_action('wp_ajax_enflujo_publicar_estado', function () {
   }
 
   $payload = [
+    'id'         => $run['id'],
+    'run_number' => $run['run_number'],
     'status' => $run['status'], // queued | in_progress | completed
     'conclusion' => isset($run['conclusion']) ? $run['conclusion'] : null, // success | failure | cancelled | null
     'html_url' => $run['html_url'],
@@ -581,4 +707,90 @@ add_action('admin_bar_menu', function($wp_admin_bar){
     $wp_admin_bar->add_node($ver);
   }
 }, 100);
+
+// Acción AJAX para detalle de jobs y steps del último run
+add_action('wp_ajax_enflujo_publicar_detalle', function () {
+  if (!current_user_can('manage_options')) {
+    wp_send_json_error(['message' => 'Permiso denegado'], 403);
+  }
+  check_ajax_referer('enflujo_publicar_nonce');
+
+  $token = enflujo_historia_obtener_token_github();
+  if (!$token) {
+    wp_send_json_error(['message' => 'Falta GITHUB_TOKEN en el servidor'], 500);
+  }
+
+  $run_id = isset($_POST['run_id']) ? intval($_POST['run_id']) : 0;
+  if (!$run_id) {
+    wp_send_json_error(['message' => 'Falta run_id'], 400);
+  }
+
+  $owner    = get_option('enflujo_gh_owner', defined('ENFLUJO_GH_OWNER') ? ENFLUJO_GH_OWNER : 'enflujo');
+  $repo     = get_option('enflujo_gh_repo', defined('ENFLUJO_GH_REPO') ? ENFLUJO_GH_REPO : 'enflujo-historia-internet');
+  // TODO: si $data['total_count'] > count($jobs), paginar con &page=2,3...
+  $url = "https://api.github.com/repos/{$owner}/{$repo}/actions/runs/{$run_id}/jobs?per_page=50";
+
+  $res = wp_remote_get($url, [
+    'headers' => [
+      'Authorization'        => 'Bearer ' . $token,
+      'Accept'               => 'application/vnd.github+json',
+      'Content-Type'         => 'application/json',
+      'X-GitHub-Api-Version' => '2022-11-28',
+      'User-Agent'           => 'WP-Enflujo-Historia-Internet/1.0'
+    ],
+    'timeout' => 30
+  ]);
+
+  if (is_wp_error($res)) {
+    wp_send_json_error(['message' => $res->get_error_message()], 500);
+  }
+  $code = wp_remote_retrieve_response_code($res);
+  if ($code !== 200) {
+    wp_send_json_error(['message' => 'GitHub respondió ' . $code . ': ' . wp_remote_retrieve_body($res), 'status' => $code], $code);
+  }
+
+  $data = json_decode(wp_remote_retrieve_body($res), true);
+  $jobs = isset($data['jobs']) ? $data['jobs'] : [];
+
+  // Normalizamos lo que enviamos al front
+  $out = [];
+  $totalSteps = 0; $doneSteps = 0;
+  foreach ($jobs as $j) {
+    $steps = [];
+    if (!empty($j['steps'])) {
+      foreach ($j['steps'] as $st) {
+        $steps[] = [
+          'name'       => $st['name'],
+          'status'     => $st['status'],     // queued | in_progress | completed
+          'conclusion' => isset($st['conclusion']) ? $st['conclusion'] : null,
+          'number'     => $st['number'],
+          'started_at' => $st['started_at'],
+          'completed_at'=> isset($st['completed_at']) ? $st['completed_at'] : null,
+        ];
+        $totalSteps++;
+        if ($st['status'] === 'completed') $doneSteps++;
+      }
+    }
+    $out[] = [
+      'id'          => $j['id'],
+      'name'        => $j['name'],
+      'status'      => $j['status'],
+      'conclusion'  => isset($j['conclusion']) ? $j['conclusion'] : null,
+      'started_at'  => $j['started_at'],
+      'completed_at'=> isset($j['completed_at']) ? $j['completed_at'] : null,
+      'html_url'    => $j['html_url'],
+      'steps'       => $steps,
+    ];
+  }
+
+  // Porcentaje aproximado por steps
+  $percent = $totalSteps > 0 ? round(($doneSteps / $totalSteps) * 100) : null;
+
+  wp_send_json_success([
+    'jobs'         => $out,
+    'steps_total'  => $totalSteps,
+    'steps_done'   => $doneSteps,
+    'percent_steps'=> $percent
+  ]);
+});
 
